@@ -112,16 +112,21 @@ const RouteTimeline = ({ steps }: any) => {
   },
 ];
 
-
-
 async function fetchEmployees() {
   const { data, error } = await supabase
     .from("employees")
     .select("*");
-    
 
-  if (!error) {
-    setEmployees(data || []);
+  if (!error && data) {
+    setEmployees(data);
+
+    // 👇 important part
+    const rolesObj: any = {};
+    data.forEach((emp: any) => {
+      rolesObj[emp.id] = emp.role || "";
+    });
+
+    setSelectedRole(rolesObj);
   }
 }
 async function fetchProducts() {
@@ -185,7 +190,7 @@ async function revokeAccess(id: string) {
   <input
     type="text"
     placeholder="Enter role (admin/editor/etc)"
-    className="border px-3 py-1 mr-2 rounded"
+    className="bg-[#0f172a] text-white border border-gray-600 px-3 py-1 mr-2 rounded placeholder-gray-400"
     value={selectedRole[emp.id] || ""}
     onChange={(e) =>
       setSelectedRole({

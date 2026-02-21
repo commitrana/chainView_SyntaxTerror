@@ -3,230 +3,210 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
 export default function EntityDetail() {
-
   const { id } = useParams();
-  const [route, setRoute] = useState<any>(null);
   const [entity, setEntity] = useState<any>(null);
   const [routeSteps, setRouteSteps] = useState<any[]>([]);
   const [scanLogs, setScanLogs] = useState<any[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [editedEntity, setEditedEntity] = useState<any>(null);
   const [editedSteps, setEditedSteps] = useState<any[]>([]);
+
   useEffect(() => {
     if (id) loadData();
   }, [id]);
 
-  async function saveChanges() {
-  const { error } = await supabase
-    .from("product_items")
-    .update({
-      product_id: editedEntity.product_id,
-      batch_number: editedEntity.batch_number,
-      current_location: editedEntity.current_location,
-      status: editedEntity.status
-    })
-    .eq("id", id);
+  async function loadData() {
+    if (!id) return;
 
-  if (!error) {
+    // ENTITY
+    const { data: entityData } = await supabase
+      .from("product_items")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    setEntity(entityData);
+    setEditedEntity(entityData);
+
+    if (!entityData) return;
+
+    // ROUTE STEPS
+    const { data: routeData } = await supabase
+      .from("route_steps")
+      .select("*")
+      .eq("route_id", entityData.route_id)
+      .order("order_number");
+
+    setRouteSteps(routeData || []);
+    setEditedSteps(routeData || []);
+
+    // SCAN HISTORY
+    const { data: scanData } = await supabase
+      .from("scan_history")
+      .select("*")
+      .eq("item_id", entityData.id)
+      .order("step_number");
+
+    setScanLogs(scanData || []);
+  }
+
+  async function saveEntity() {
+    await supabase.from("product_items").update(editedEntity).eq("id", id);
     alert("Updated successfully");
-    setEntity(editedEntity);
+    loadData();
     setEditMode(false);
   }
-}
 
-  async function loadData() {
+  async function saveRoute() {
+    for (const step of editedSteps) {
+      await supabase
+        .from("route_steps")
+        .update({ level: step.level, city: step.city })
+        .eq("id", step.id);
+    }
+    alert("Route updated");
+    loadData();
+    setEditMode(false);
+  }
 
-  console.log("URL PARAM ID →", id);
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#020617] via-[#0b1120] to-[#020617] text-white p-8">
 
-  if (!id) return;
-
-  // Fetch entity
-  const { data: entityData, error } = await supabase
-    .from("product_items")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  console.log("ENTITY DATA →", entityData);
-  console.log("ENTITY ERROR →", error);
-
-  setEntity(entityData);
-  setEditedEntity(entityData);
-
-  if (!entityData) return;
-
-  // Fetch route steps
-  const { data: routeData } = await supabase
-    .from("route_steps")
-    .select("*")
-    .eq("route_id", entityData.route_id)
-    .order("order_number");
-
-  console.log("ROUTE STEPS →", routeData);
-
-  setRouteSteps(routeData || []);
-  setEditedSteps(routeData || []);
-
-  // Fetch scan logs
-  const { data: scanData } = await supabase
-    .from("scan_history")
-    .select("*")
-    .eq("item_id", entityData.id)
-    .order("step_number");
-
-  console.log("SCAN LOGS →", scanData);
-
-  setScanLogs(scanData || []);
-}
-
- return (
-  <div className="p-6 space-y-6">
-
-    <h1 className="text-xl font-bold">
-      Tracking Details
-    </h1>
-
-    {entity && (
-      <div className="border rounded-xl p-6 space-y-4 bg-white shadow-md">
-
-        {/* EDIT BUTTON */}
-        <button
-          onClick={() => {
-            setEditMode(!editMode);
-            setEditedEntity(entity);
-          }}
-          className="bg-purple-500 text-white px-3 py-1 rounded"
-        >
-          {editMode ? "Cancel" : "Edit Details"}
-        </button>
-
-        {/* PRODUCT ID */}
-        <div>
-          <p className="text-sm text-gray-700">Product ID</p>
-
-          {editMode ? (
-            <input
-              value={editedEntity?.product_id || ""}
-              onChange={(e) =>
-                setEditedEntity({
-                  ...editedEntity,
-                  product_id: e.target.value
-                })
-              }
-              className="border p-2 rounded w-full"
-            />
-          ) : (
-            <h2 className="font-semibold">{entity.product_id}</h2>
-          )}
-        </div>
-
-        {/* BATCH */}
-        <div>
-          <p className="text-sm text-muted-foreground">Batch</p>
-          <p>{entity.batch_number}</p>
-        </div>
-
-        {/* SAVE BUTTON */}
-        {editMode && (
-          <button
-            onClick={async () => {
-              const { error } = await supabase
-                .from("product_items")
-                .update(editedEntity)
-                .eq("id", entity.id);
-
-              if (!error) {
-                alert("Updated Successfully");
-                window.location.reload();
-              }
-            }}
-            className="bg-green-500 text-white px-4 py-2 rounded"
-          >
-            Save Changes
-          </button>
-          
-        )}
-        {editMode && (
-  <button
-    onClick={async () => {
-
-      for (const step of editedSteps) {
-        await supabase
-          .from("route_steps")
-          .update({
-            level: step.level,
-            city: step.city
-          })
-          .eq("id", step.id);
-      }
-
-      alert("Route Updated Successfully");
-      loadData();
-      setEditMode(false);
-
-    }}
-    className="bg-blue-500 text-white px-4 py-2 rounded ml-2"
-  >
-    Save Route Steps
-  </button>
-)}
-
-        {/* TIMELINE */}
-        <div className="border-l-2 pl-6 mt-6 space-y-6">
-          {editedSteps.map((step, index) => {
-
-            const scan = scanLogs?.find(
-              s => Number(s.step_number) === Number(step.order_number)
-            );
-
-            return (
-              <div key={step.id} className="relative">
-
-                <div className={`w-3 h-3 rounded-full absolute -left-[22px]
-                  ${scan ? "bg-green-500" : "bg-gray-400"}`}>
-                </div>
-
-                {editMode ? (
-  <>
-    <input
-      value={step.level}
-      onChange={(e) => {
-        const updated = [...editedSteps];
-        updated[index].level = e.target.value;
-        setEditedSteps(updated);
-      }}
-      className="border border-gray-400 bg-gray-50 text-black p-2 rounded w-full"
-    />
-
-    <input
-      value={step.city}
-      onChange={(e) => {
-        const updated = [...editedSteps];
-        updated[index].city = e.target.value;
-        setEditedSteps(updated);
-      }}
-      className="border p-1 rounded w-full mt-1"
-    />
-  </>
-) : (
-  <p className="font-medium">
-    {step.level} → {step.city}
-  </p>
-)}
-
-                {scan && (
-                  <p className="text-xs text-green-600">
-                    Scanned at {new Date(scan.scan_time).toLocaleString()}
-                  </p>
-                )}
-
-              </div>
-            );
-          })}
-        </div>
-
+      {/* HEADER */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          Product Tracking
+        </h1>
+        <p className="text-gray-400 mt-2">
+          View route journey, edit details and track scans
+        </p>
       </div>
-    )}
-  </div>
-);
+
+      {entity && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
+
+          {/* EDIT BUTTON */}
+          <div className="flex justify-between mb-6">
+            <h2 className="text-xl font-semibold">Tracking Details</h2>
+
+            <button
+              onClick={() => {
+                setEditMode(!editMode);
+                setEditedEntity(entity);
+              }}
+              className="bg-gradient-to-r from-purple-500 to-indigo-600 px-5 py-2 rounded-lg font-semibold hover:scale-105 transition"
+            >
+              {editMode ? "Cancel" : "Edit"}
+            </button>
+          </div>
+
+          {/* PRODUCT ID */}
+          <div className="mb-4">
+            <p className="text-gray-400 text-sm">Product ID</p>
+
+            {editMode ? (
+              <input
+                value={editedEntity?.product_id || ""}
+                onChange={(e) =>
+                  setEditedEntity({
+                    ...editedEntity,
+                    product_id: e.target.value,
+                  })
+                }
+                className="bg-[#020617] border border-gray-600 focus:border-blue-500 outline-none p-3 rounded-lg w-full mt-1"
+              />
+            ) : (
+              <p className="text-lg font-semibold mt-1">{entity.product_id}</p>
+            )}
+          </div>
+
+          {/* BATCH */}
+          <div className="mb-6">
+            <p className="text-gray-400 text-sm">Batch Number</p>
+            <p className="font-semibold mt-1">{entity.batch_number}</p>
+          </div>
+
+          {/* SAVE ENTITY */}
+          {editMode && (
+            <button
+              onClick={saveEntity}
+              className="bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-2 rounded-lg font-semibold hover:scale-105 transition"
+            >
+              Save Details
+            </button>
+          )}
+
+          {/* ROUTE SAVE */}
+          {editMode && (
+            <button
+              onClick={saveRoute}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-2 rounded-lg font-semibold hover:scale-105 transition ml-3"
+            >
+              Save Route
+            </button>
+          )}
+
+          {/* TIMELINE */}
+          <div className="mt-10">
+            <h3 className="text-lg font-semibold mb-6">Route Timeline</h3>
+
+            <div className="border-l border-gray-700 pl-6 space-y-8">
+              {editedSteps.map((step, index) => {
+                const scan = scanLogs?.find(
+                  (s) => Number(s.step_number) === Number(step.order_number)
+                );
+
+                return (
+                  <div key={step.id} className="relative">
+
+                    {/* DOT */}
+                    <div
+                      className={`w-4 h-4 rounded-full ring-4 ring-[#020617] absolute -left-[26px]
+                      ${scan ? "bg-green-500" : "bg-gray-500"}`}
+                    />
+
+                    {/* STEP INFO */}
+                    {editMode ? (
+                      <>
+                        <input
+                          value={step.level}
+                          onChange={(e) => {
+                            const updated = [...editedSteps];
+                            updated[index].level = e.target.value;
+                            setEditedSteps(updated);
+                          }}
+                          className="bg-[#020617] border border-gray-600 p-2 rounded-lg w-full"
+                        />
+
+                        <input
+                          value={step.city}
+                          onChange={(e) => {
+                            const updated = [...editedSteps];
+                            updated[index].city = e.target.value;
+                            setEditedSteps(updated);
+                          }}
+                          className="bg-[#020617] border border-gray-600 p-2 rounded-lg w-full mt-2"
+                        />
+                      </>
+                    ) : (
+                      <p className="font-semibold text-lg">
+                        {step.level} → {step.city}
+                      </p>
+                    )}
+
+                    {/* SCAN TIME */}
+                    {scan && (
+                      <p className="text-sm text-green-400 mt-1">
+                        Scanned at {new Date(scan.scan_time).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

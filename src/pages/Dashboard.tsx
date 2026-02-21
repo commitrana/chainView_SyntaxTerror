@@ -79,10 +79,10 @@ export default function Dashboard() {
   };
 
   const stats = [
-    { label: 'Total Products', value: '2,847', icon: Package },
-    { label: 'Active Shipments', value: '342', icon: Truck },
-    { label: 'Completed', value: '1,249', icon: CheckCircle },
-    { label: 'Pending Actions', value: '23', icon: AlertTriangle },
+    { label: 'Total Products', value: products.length, icon: Package },
+    { label: 'Active Shipments', value: '0', icon: Truck },
+    { label: 'Completed', value: '0', icon: CheckCircle },
+    { label: 'Pending Actions', value: '0', icon: AlertTriangle },
   ];
 
   return (

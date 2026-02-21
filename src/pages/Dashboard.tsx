@@ -6,13 +6,7 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-const stats = [
-  { label: 'Total Products', value: products.length, icon: Package, variant: 'default' as const, trend: '+3 this week' },
-  { label: 'In Transit', value: products.filter(p => !['Customer'].includes(p.currentState)).length, icon: Truck, variant: 'primary' as const, trend: '6 active routes' },
-  { label: 'Delivered', value: products.filter(p => p.currentState === 'Customer').length, icon: CheckCircle, variant: 'success' as const, trend: '100% on schedule' },
-  { label: 'Rerouted', value: products.filter(p => p.status === 'Rerouted').length, icon: RotateCcw, variant: 'primary' as const, trend: 'Admin overrides' },
-  { label: 'Flagged', value: products.filter(p => p.status === 'Flagged').length, icon: AlertTriangle, variant: 'warning' as const, trend: 'Requires attention' },
-];
+
 
 const activityTypeIcons = {
   scan: QrCode,
@@ -39,22 +33,27 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Dashboard() {
-  const [employees, setEmployees] = useState([]);
-  const navigate = useNavigate();
-  const [routes, setRoutes] = useState<any[]>([]);
-  
-  
-  
 
+  const navigate = useNavigate();
+  const [selectedRole, setSelectedRole] = useState<any>({});
+  
+  
   type Product = {
   id: string;
   name: string;
   created_at?: string;
+  currentState?: string;
+  status?: string;
 };
-
-
-const [products, setProducts] = useState<Product[]>([]);
-  const RouteTimeline = ({ steps }: any) => {
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  useEffect(() => {
+    fetchEmployees();
+    fetchProducts();
+  }, []);
+  
+const RouteTimeline = ({ steps }: any) => {
   return (
     <div className="border rounded-lg p-4 space-y-4 mt-3">
       <h4 className="font-semibold">Route Journey</h4>
@@ -112,10 +111,6 @@ const [products, setProducts] = useState<Product[]>([]);
     trend: 'Attention needed' 
   },
 ];
-  useEffect(() => {
-  fetchEmployees();
-  fetchProducts();
-}, []);
 
 
 
@@ -126,7 +121,7 @@ async function fetchEmployees() {
     
 
   if (!error) {
-    setEmployees(data);
+    setEmployees(data || []);
   }
 }
 async function fetchProducts() {
@@ -190,7 +185,7 @@ async function revokeAccess(id: string) {
   <input
     type="text"
     placeholder="Enter role (admin/editor/etc)"
-    className="bg-black border px-3 py-1 mr-2 rounded"
+    className="border px-3 py-1 mr-2 rounded"
     value={selectedRole[emp.id] || ""}
     onChange={(e) =>
       setSelectedRole({

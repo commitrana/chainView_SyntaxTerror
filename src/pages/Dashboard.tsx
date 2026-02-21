@@ -1,7 +1,7 @@
 import { Package, Truck, CheckCircle, RotateCcw, AlertTriangle, QrCode, Shield, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import StatsCard from '@/components/StatsCard';
-
+import { useNavigate } from "react-router-dom";
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -33,10 +33,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Dashboard() {
   const [employees, setEmployees] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const navigate = useNavigate();
   const [routes, setRoutes] = useState<any[]>([]);
-  const [selectedRoute, setSelectedRoute] = useState<any>(null);
-  const [routeSteps, setRouteSteps] = useState<any[]>([]);
+  
+  
+  
+
   type Product = {
   id: string;
   name: string;
@@ -108,6 +110,8 @@ const [products, setProducts] = useState<Product[]>([]);
   fetchProducts();
 }, []);
 
+
+
 async function fetchEmployees() {
   const { data, error } = await supabase
     .from("employees")
@@ -143,26 +147,9 @@ async function revokeAccess(id: string) {
 
   fetchEmployees();
 }
-async function fetchRoutes(productId: string) {
-   if (!productId) return; // 💀 prevent undefined errors
 
-  const { data, error } = await supabase
-    .from("routes")
-    .select("*")
-    .eq("product_id", productId);
 
-  if (!error) setRoutes(data || []);
-}
 
-async function fetchRouteSteps(routeId: string) {
-  const { data, error } = await supabase
-    .from("route_steps")
-    .select("*")
-    .eq("route_id", routeId)
-    .order("order_number", { ascending: true });
-
-  if (!error) setRouteSteps(data);
-}
   return (
   <div className="space-y-8">
 
@@ -201,64 +188,28 @@ async function fetchRouteSteps(routeId: string) {
     <div key={product.id} className="border p-3 rounded">
       <p>{product.name}</p>
       <button
-        onClick={() => {
-          setSelectedProduct(product);
-          fetchRoutes(product.id);
-        }}
-        className="bg-blue-500 text-white px-3 py-1 rounded mt-2"
-      >
-        View Routes
-      </button>
+        onClick={async () => {
+        const { data } = await supabase
+          .from("product_items")
+          .select("id")
+          .eq("product_id", product.id)
+
+          if (!data && data.length === 0) {
+          alert("No items found for this product");
+          return;
+        }
+        navigate(`/entities/${data[0].id}`);
+
+}}
+      className="bg-blue-500 text-white px-3 py-1 rounded mt-2"
+>
+ View Items
+</button>
     </div>
   ))}
 </div>
 
-{routes.length > 0 && (
-  <div className="space-y-4">
-    <h3 className="text-md font-semibold">Routes</h3>
 
-    {routes.map((route: any) => (
-      <div key={route.id} className="border p-4 rounded-lg">
-
-        {/* Route Journey Display */}
-        <p className="font-semibold">
-          {route.origin} → {route.destination}
-        </p>
-
-        <p className="text-sm text-muted-foreground">
-          Product Code: {route.name}
-        </p>
-
-        <button
-      onClick={() => {
-        setSelectedRoute(route);
-        fetchRouteSteps(route.id);
-      }}
-  className="bg-blue-500 text-white px-3 py-1 rounded mt-2"
->
-  View Routes
-</button>
-
-        {/* Show Steps Only When Route Selected */}
-        {selectedRoute?.id === route.id && routeSteps.length > 0 && (
-          <div className="mt-4 border-l-2 pl-4 space-y-3">
-            {routeSteps.map((step: any) => (
-              <div key={step.id}>
-                <p className="font-medium">
-                  {step.level} → {step.city}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Step {step.order_number}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-      </div>
-    ))}
-  </div>
-)}
 
     {/* 🔵 ORIGINAL DASHBOARD CONTENT */}
     <div>

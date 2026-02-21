@@ -37,8 +37,35 @@ export default function Dashboard() {
   const [routes, setRoutes] = useState<any[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<any>(null);
   const [routeSteps, setRouteSteps] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  type Product = {
+  id: string;
+  name: string;
+  created_at?: string;
+};
 
+
+const [products, setProducts] = useState<Product[]>([]);
+  const RouteTimeline = ({ steps }: any) => {
+  return (
+    <div className="border rounded-lg p-4 space-y-4 mt-3">
+      <h4 className="font-semibold">Route Journey</h4>
+
+      <div className="border-l-2 border-gray-300 pl-4 space-y-4">
+        {steps.map((step: any) => (
+          <div key={step.id} className="space-y-1">
+            <p className="font-medium">
+              {step.level} → {step.city}
+            </p>
+
+            <p className="text-xs text-muted-foreground">
+              Step #{step.order_number}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
   const stats = [
   { 
     label: 'Total Products', 
@@ -94,9 +121,9 @@ async function fetchEmployees() {
 async function fetchProducts() {
   const { data, error } = await supabase
     .from("products")
-    .select("*");
+    .select("id,name,created_at");
 
-  if (!error) setProducts(data);
+  if (!error) setProducts(data || []);
 }
 
 async function grantAccess(id: string) {
@@ -117,12 +144,14 @@ async function revokeAccess(id: string) {
   fetchEmployees();
 }
 async function fetchRoutes(productId: string) {
+   if (!productId) return; // 💀 prevent undefined errors
+
   const { data, error } = await supabase
     .from("routes")
     .select("*")
     .eq("product_id", productId);
 
-  if (!error) setRoutes(data);
+  if (!error) setRoutes(data || []);
 }
 
 async function fetchRouteSteps(routeId: string) {
@@ -163,11 +192,12 @@ async function fetchRouteSteps(routeId: string) {
         </div>
       ))}
     </div>
+    
     {/* 🔵 PRODUCTS LIST */}
 <div className="space-y-4">
   <h2 className="text-lg font-semibold">Products</h2>
 
-  {products.map((product: any) => (
+  {products.map((product: Product) => (
     <div key={product.id} className="border p-3 rounded">
       <p>{product.name}</p>
       <button
@@ -182,42 +212,49 @@ async function fetchRouteSteps(routeId: string) {
     </div>
   ))}
 </div>
+
 {routes.length > 0 && (
-  <div className="space-y-3">
+  <div className="space-y-4">
     <h3 className="text-md font-semibold">Routes</h3>
 
     {routes.map((route: any) => (
-      <div key={route.id} className="border p-3 rounded">
-        <p>{route.route_name}</p>
-        <button
-          onClick={() => {
-            setSelectedRoute(route);
-            fetchRouteSteps(route.id);
-          }}
-          className="bg-purple-500 text-white px-3 py-1 rounded mt-2"
-        >
-          View Steps
-        </button>
-      </div>
-    ))}
-  </div>
-)}
-{routes.length > 0 && (
-  <div className="space-y-3">
-    <h3 className="text-md font-semibold">Routes</h3>
+      <div key={route.id} className="border p-4 rounded-lg">
 
-    {routes.map((route: any) => (
-      <div key={route.id} className="border p-3 rounded">
-        <p>{route.route_name}</p>
+        {/* Route Journey Display */}
+        <p className="font-semibold">
+          {route.origin} → {route.destination}
+        </p>
+
+        <p className="text-sm text-muted-foreground">
+          Product Code: {route.name}
+        </p>
+
         <button
-          onClick={() => {
-            setSelectedRoute(route);
-            fetchRouteSteps(route.id);
-          }}
-          className="bg-purple-500 text-white px-3 py-1 rounded mt-2"
-        >
-          View Steps
-        </button>
+      onClick={() => {
+        setSelectedRoute(route);
+        fetchRouteSteps(route.id);
+      }}
+  className="bg-blue-500 text-white px-3 py-1 rounded mt-2"
+>
+  View Routes
+</button>
+
+        {/* Show Steps Only When Route Selected */}
+        {selectedRoute?.id === route.id && routeSteps.length > 0 && (
+          <div className="mt-4 border-l-2 pl-4 space-y-3">
+            {routeSteps.map((step: any) => (
+              <div key={step.id}>
+                <p className="font-medium">
+                  {step.level} → {step.city}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Step {step.order_number}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     ))}
   </div>
@@ -239,9 +276,6 @@ async function fetchRouteSteps(routeId: string) {
         <StatsCard key={s.label} {...s} />
       ))}
     </div>
-
-    {/* Charts + Activity */}
-    {/* (Rest of your existing chart/activity code yahin rehne do) */}
 
   </div>
 );

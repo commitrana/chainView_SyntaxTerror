@@ -7,6 +7,7 @@ const navItems = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
   { label: 'Products', path: '/products', icon: Package },
   { label: 'Entities', path: '/entities', icon: Building2 },
+  { label: 'Employees', path: '/employees', icon: User },
 ];
 
 export default function DashboardLayout() {

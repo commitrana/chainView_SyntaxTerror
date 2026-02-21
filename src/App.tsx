@@ -10,7 +10,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Entities from "./pages/Entities";
 import NotFound from "./pages/NotFound";
 import EntityDetail from "@/pages/EntityDetail";
-
+import Employees from "@/pages/Employees"
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -26,6 +26,7 @@ const App = () => (
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/entities" element={<Entities />} />
             <Route path="/entities/:id" element={<EntityDetail />} />
+            <Route path="/employees" element={<Employees />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

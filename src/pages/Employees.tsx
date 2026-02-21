@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 type Employee = {
   id: string;
   name: string;
-  level: string;
+ 
   phone: string;
   email: string;
   location: string;
@@ -26,7 +26,7 @@ export default function Employees() {
 
     const { data, error } = await supabase
       .from("employees")
-      .select("id,name,level,phone,email,location,role");
+      .select("id,name,phone,email,location,role");
 
     if (!error) {
       setEmployees(data || []);
@@ -45,7 +45,7 @@ export default function Employees() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Level</TableHead>
+              
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Location</TableHead>
@@ -65,7 +65,7 @@ export default function Employees() {
               employees.map(emp => (
                 <TableRow key={emp.id}>
                   <TableCell className="font-medium">{emp.name}</TableCell>
-                  <TableCell>{emp.level || "-"}</TableCell>
+                  
                   <TableCell>{emp.phone || "-"}</TableCell>
                   <TableCell>{emp.email || "-"}</TableCell>
                   <TableCell>{emp.location || "-"}</TableCell>

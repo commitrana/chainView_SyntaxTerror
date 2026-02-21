@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Building2, Menu, X, QrCode, Bell, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Package, Building2, Menu, X, QrCode, Bell, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 const navItems = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -12,12 +13,123 @@ const navItems = [
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        console.log('Current user:', user);
+        
+        // Set initial data from auth user immediately
+        const initialUserData = {
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'Admin User',
+          email: user.email || 'No email',
+        };
+        setUserData(initialUserData);
+        
+        // Try to get from admin table
+        const { data: adminData, error } = await supabase
+          .from('admin')
+          .select('name, email, phone_number')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (adminData) {
+          console.log('Admin data found:', adminData);
+          setUserData(adminData);
+        } else {
+          console.log('No admin data found, using metadata');
+          
+          // Try to create admin record
+          if (user.user_metadata?.name) {
+            const { error: insertError } = await supabase
+              .from('admin')
+              .insert([
+                {
+                  id: user.id,
+                  name: user.user_metadata.name,
+                  email: user.email,
+                  phone_number: user.user_metadata.phone_number || null,
+                }
+              ])
+              .select();
+            
+            if (insertError) {
+              console.log('Could not create admin record:', insertError);
+            } else {
+              console.log('Admin record created successfully');
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/signin');
+  };
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
+
+  // Show a minimal layout while loading to avoid blank screen
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <aside className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-border bg-sidebar">
+          <div className="flex h-16 items-center gap-2.5 border-b border-border px-6">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <QrCode className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="font-heading text-lg font-semibold text-foreground">ChainView</span>
+          </div>
+          <div className="flex-1 px-3 py-4">
+            {/* Skeleton loading state for nav items */}
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="h-4 w-4 rounded bg-muted animate-pulse" />
+                <div className="h-4 w-20 rounded bg-muted animate-pulse" />
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-border p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+              <div className="flex-1">
+                <div className="h-4 w-24 rounded bg-muted animate-pulse mb-2" />
+                <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </aside>
+        <div className="flex-1 flex flex-col">
+          <header className="flex h-16 items-center border-b border-border px-4 lg:px-8">
+            <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+          </header>
+          <main className="flex-1 p-4 lg:p-8">
+            <div className="h-32 rounded-lg bg-muted animate-pulse" />
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -72,9 +184,20 @@ export default function DashboardLayout() {
               <User className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">Admin User</p>
-              <p className="truncate text-xs text-muted-foreground">admin@chainview.io</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {userData?.name || 'Admin User'}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {userData?.email || 'admin@chainview.io'}
+              </p>
             </div>
+            <button
+              onClick={handleSignOut}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </aside>

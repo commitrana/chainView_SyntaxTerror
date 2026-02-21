@@ -1,17 +1,11 @@
 import { Package, Truck, CheckCircle, RotateCcw, AlertTriangle, QrCode, Shield, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import StatsCard from '@/components/StatsCard';
-import { products, recentActivities, stateDistributionData, rerouteFrequencyData } from '@/data/mockData';
+
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-const stats = [
-  { label: 'Total Products', value: products.length, icon: Package, variant: 'default' as const, trend: '+3 this week' },
-  { label: 'In Transit', value: products.filter(p => !['Customer'].includes(p.currentState)).length, icon: Truck, variant: 'primary' as const, trend: '6 active routes' },
-  { label: 'Delivered', value: products.filter(p => p.currentState === 'Customer').length, icon: CheckCircle, variant: 'success' as const, trend: '100% on schedule' },
-  { label: 'Rerouted', value: products.filter(p => p.status === 'Rerouted').length, icon: RotateCcw, variant: 'primary' as const, trend: 'Admin overrides' },
-  { label: 'Flagged', value: products.filter(p => p.status === 'Flagged').length, icon: AlertTriangle, variant: 'warning' as const, trend: 'Requires attention' },
-];
+
 
 const activityTypeIcons = {
   scan: QrCode,
@@ -39,9 +33,52 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Dashboard() {
   const [employees, setEmployees] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [selectedRoute, setSelectedRoute] = useState<any>(null);
+  const [routeSteps, setRouteSteps] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
-useEffect(() => {
+  const stats = [
+  { 
+    label: 'Total Products', 
+    value: products.length, 
+    icon: Package, 
+    variant: 'default' as const, 
+    trend: '+3 this week' 
+  },
+  { 
+    label: 'In Transit', 
+    value: 0, 
+    icon: Truck, 
+    variant: 'primary' as const, 
+    trend: 'Active routes' 
+  },
+  { 
+    label: 'Delivered', 
+    value: 0, 
+    icon: CheckCircle, 
+    variant: 'success' as const, 
+    trend: 'Completed' 
+  },
+  { 
+    label: 'Rerouted', 
+    value: 0, 
+    icon: RotateCcw, 
+    variant: 'primary' as const, 
+    trend: 'Overrides' 
+  },
+  { 
+    label: 'Flagged', 
+    value: 0, 
+    icon: AlertTriangle, 
+    variant: 'warning' as const, 
+    trend: 'Attention needed' 
+  },
+];
+  useEffect(() => {
   fetchEmployees();
+  fetchProducts();
 }, []);
 
 async function fetchEmployees() {
@@ -53,6 +90,13 @@ async function fetchEmployees() {
   if (!error) {
     setEmployees(data);
   }
+}
+async function fetchProducts() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*");
+
+  if (!error) setProducts(data);
 }
 
 async function grantAccess(id: string) {
@@ -71,6 +115,24 @@ async function revokeAccess(id: string) {
     .eq("id", id);
 
   fetchEmployees();
+}
+async function fetchRoutes(productId: string) {
+  const { data, error } = await supabase
+    .from("routes")
+    .select("*")
+    .eq("product_id", productId);
+
+  if (!error) setRoutes(data);
+}
+
+async function fetchRouteSteps(routeId: string) {
+  const { data, error } = await supabase
+    .from("route_steps")
+    .select("*")
+    .eq("route_id", routeId)
+    .order("order_number", { ascending: true });
+
+  if (!error) setRouteSteps(data);
 }
   return (
   <div className="space-y-8">
@@ -101,6 +163,65 @@ async function revokeAccess(id: string) {
         </div>
       ))}
     </div>
+    {/* 🔵 PRODUCTS LIST */}
+<div className="space-y-4">
+  <h2 className="text-lg font-semibold">Products</h2>
+
+  {products.map((product: any) => (
+    <div key={product.id} className="border p-3 rounded">
+      <p>{product.name}</p>
+      <button
+        onClick={() => {
+          setSelectedProduct(product);
+          fetchRoutes(product.id);
+        }}
+        className="bg-blue-500 text-white px-3 py-1 rounded mt-2"
+      >
+        View Routes
+      </button>
+    </div>
+  ))}
+</div>
+{routes.length > 0 && (
+  <div className="space-y-3">
+    <h3 className="text-md font-semibold">Routes</h3>
+
+    {routes.map((route: any) => (
+      <div key={route.id} className="border p-3 rounded">
+        <p>{route.route_name}</p>
+        <button
+          onClick={() => {
+            setSelectedRoute(route);
+            fetchRouteSteps(route.id);
+          }}
+          className="bg-purple-500 text-white px-3 py-1 rounded mt-2"
+        >
+          View Steps
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+{routes.length > 0 && (
+  <div className="space-y-3">
+    <h3 className="text-md font-semibold">Routes</h3>
+
+    {routes.map((route: any) => (
+      <div key={route.id} className="border p-3 rounded">
+        <p>{route.route_name}</p>
+        <button
+          onClick={() => {
+            setSelectedRoute(route);
+            fetchRouteSteps(route.id);
+          }}
+          className="bg-purple-500 text-white px-3 py-1 rounded mt-2"
+        >
+          View Steps
+        </button>
+      </div>
+    ))}
+  </div>
+)}
 
     {/* 🔵 ORIGINAL DASHBOARD CONTENT */}
     <div>

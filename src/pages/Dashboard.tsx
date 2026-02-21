@@ -5,6 +5,7 @@ import { products, recentActivities, stateDistributionData, rerouteFrequencyData
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+
 const stats = [
   { label: 'Total Products', value: products.length, icon: Package, variant: 'default' as const, trend: '+3 this week' },
   { label: 'In Transit', value: products.filter(p => !['Customer'].includes(p.currentState)).length, icon: Truck, variant: 'primary' as const, trend: '6 active routes' },
@@ -39,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Dashboard() {
   const [employees, setEmployees] = useState([]);
-
+  const [selectedRole, setSelectedRole] = useState({})
 useEffect(() => {
   fetchEmployees();
 }, []);
@@ -54,7 +55,18 @@ async function fetchEmployees() {
     setEmployees(data);
   }
 }
+async function updateRole(id: string, role: string) {
+  const { error } = await supabase
+    .from("employees")
+    .update({ role: role })
+    .eq("id", id);
 
+  if (error) {
+    console.log(error);
+    alert(error.message);
+  }
+  fetchEmployees(); 
+}
 async function grantAccess(id: string) {
   await supabase
     .from("employees")
@@ -82,22 +94,46 @@ async function revokeAccess(id: string) {
       {employees.map((emp: any) => (
         <div key={emp.id} className="border p-4 rounded-lg">
           <p>{emp.name} - {emp.level}</p>
-
           {emp.can_scan ? (
-            <button
-              onClick={() => revokeAccess(emp.id)}
-              className="bg-red-500 text-white px-3 py-1 rounded"
-            >
-              Revoke Access
-            </button>
-          ) : (
-            <button
-              onClick={() => grantAccess(emp.id)}
-              className="bg-green-500 text-white px-3 py-1 rounded"
-            >
-              Grant Access
-            </button>
-          )}
+  <button
+    onClick={() => revokeAccess(emp.id)}
+    className="bg-red-500 text-white px-3 py-1 rounded"
+  >
+    Revoke Access
+  </button>
+) : (
+<>
+  <input
+    type="text"
+    placeholder="Enter role (admin/editor/etc)"
+    className="bg-black border px-3 py-1 mr-2 rounded"
+    value={selectedRole[emp.id] || ""}
+    onChange={(e) =>
+      setSelectedRole({
+        ...selectedRole,
+        [emp.id]: e.target.value,
+      })
+    }
+  />
+
+  {/* SAVE ROLE */}
+  <button
+    onClick={() => updateRole(emp.id, selectedRole[emp.id])}
+    className="bg-blue-500 text-white px-3 py-1 rounded mr-2"
+  >
+    Save Role
+  </button>
+
+  {/* ENABLE QR */}
+  <button
+    onClick={() => grantAccess(emp.id)}
+    className="bg-green-500 text-white px-3 py-1 rounded"
+  >
+    Enable QR
+  </button>
+</>
+)}
+
         </div>
       ))}
     </div>

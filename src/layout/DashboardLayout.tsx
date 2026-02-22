@@ -9,7 +9,8 @@ const navItems = [
   { label: 'Products', path: '/products', icon: Package },
   { label: 'Entities', path: '/entities', icon: Building2 },
   { label: 'Employees', path: '/employees', icon: User },
-  { label: 'Route Steps', path: '/route-steps', icon: MapPin }, // Added this line
+  { label: 'Route Steps', path: '/route-steps', icon: MapPin },
+  { label: 'Create Product Item', path: '/create-product-item', icon: Package },
 ];
 
 export default function DashboardLayout() {
@@ -103,7 +104,7 @@ export default function DashboardLayout() {
           </div>
           <div className="flex-1 px-3 py-4">
             {/* Skeleton loading state for nav items */}
-            {[1, 2, 3, 4, 5].map((i) => ( // Updated from 4 to 5 items
+            {[1, 2, 3, 4, 5, 6].map((i) => ( // Updated from 5 to 6 items
               <div key={i} className="flex items-center gap-3 px-3 py-2.5">
                 <div className="h-4 w-4 rounded bg-muted animate-pulse" />
                 <div className="h-4 w-20 rounded bg-muted animate-pulse" />

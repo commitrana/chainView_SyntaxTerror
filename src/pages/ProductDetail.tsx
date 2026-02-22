@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, Plus, ChevronUp, ChevronDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import StatusBadge from '@/components/StatusBadge';
@@ -22,23 +22,25 @@ export default function ProductDetail() {
   const [currentRouteId, setCurrentRouteId] = useState<string | null>(null);
 
   function getAvailableEmployees(currentStepId: string) {
-  const assignedEmployees = routeSteps
-    .filter(step => 
-      step.assigned_employee_id && step.id !== currentStepId
-    )
-    .map(step => step.assigned_employee_id);
+    const assignedEmployees = routeSteps
+      .filter(step => 
+        step.assigned_employee_id && step.id !== currentStepId
+      )
+      .map(step => step.assigned_employee_id);
 
-  return employees.filter(
-    emp => !assignedEmployees.includes(emp.id)
-  );
-}
+    return employees.filter(
+      emp => !assignedEmployees.includes(emp.id)
+    );
+  }
+  
   async function fetchEmployees() {
-  const { data } = await supabase
-    .from("employees")
-    .select("id,name,role,location,phone,email");
+    const { data } = await supabase
+      .from("employees")
+      .select("id,name,role,location,phone,email");
 
-  setEmployees(data || []);
-}
+    setEmployees(data || []);
+  }
+  
   useEffect(() => {
     if (id) {
       fetchProductDirectly();
@@ -49,19 +51,19 @@ export default function ProductDetail() {
     }
   }, [id]);
 
-   async function assignEmployeeToStep(stepId: string, employeeId: string) {
-  const { error } = await supabase
-    .from("route_steps")
-    .update({
-      assigned_employee_id: employeeId
-    })
-    .eq("id", stepId);
+  async function assignEmployeeToStep(stepId: string, employeeId: string) {
+    const { error } = await supabase
+      .from("route_steps")
+      .update({
+        assigned_employee_id: employeeId
+      })
+      .eq("id", stepId);
 
-  if (!error) {
-    await fetchRouteStepsForRoute(currentRouteId!);
-    setAssigningStepIndex(null);
+    if (!error) {
+      await fetchRouteStepsForRoute(currentRouteId!);
+      setAssigningStepIndex(null);
+    }
   }
-}
 
   async function fetchProductDirectly() {
     try {
@@ -354,6 +356,85 @@ export default function ProductDetail() {
         </div>
       </div>
 
+      {/* QR Codes Section */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold mb-4">Product QR Codes</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* External QR Code */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">External QR Code</p>
+              {product.external_qr_path && (
+                <a
+                  href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/qr-bucket/${product.external_qr_path}`}
+                  download
+                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <Download className="h-3 w-3" />
+                  Download
+                </a>
+              )}
+            </div>
+            
+            {product.external_qr_path ? (
+              <div className="border rounded-xl p-4 bg-white inline-block">
+                <img
+                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/qr-bucket/${product.external_qr_path}`}
+                  alt="External QR Code"
+                  className="w-48 h-48"
+                />
+              </div>
+            ) : (
+              <div className="border rounded-xl p-8 bg-gray-50 text-center">
+                <p className="text-sm text-muted-foreground">No external QR code generated</p>
+              </div>
+            )}
+            
+            <div className="text-xs text-muted-foreground">
+              <p>Type: EXTERNAL - For public scanning</p>
+              <p>Contains: Product info, current state, scan tracking</p>
+            </div>
+          </div>
+
+          {/* Internal QR Code */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Internal QR Code</p>
+              {product.internal_qr_path && (
+                <a
+                  href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/qr-bucket/${product.internal_qr_path}`}
+                  download
+                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <Download className="h-3 w-3" />
+                  Download
+                </a>
+              )}
+            </div>
+            
+            {product.internal_qr_path ? (
+              <div className="border rounded-xl p-4 bg-white inline-block">
+                <img
+                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/qr-bucket/${product.internal_qr_path}`}
+                  alt="Internal QR Code"
+                  className="w-48 h-48"
+                />
+              </div>
+            ) : (
+              <div className="border rounded-xl p-8 bg-gray-50 text-center">
+                <p className="text-sm text-muted-foreground">No internal QR code generated</p>
+              </div>
+            )}
+            
+            <div className="text-xs text-muted-foreground">
+              <p>Type: INTERNAL - For internal tracking</p>
+              <p>Contains: Claim info, batch details, tracking data</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Routes Card */}
       <div className="rounded-xl border border-border bg-card p-6">
         <h2 className="text-lg font-semibold mb-4">Routes</h2>
@@ -387,169 +468,152 @@ export default function ProductDetail() {
       </div>
     
       {/* Route Steps Card */}
-      
-    <div className="rounded-xl border border-border bg-card p-6">
-      <div className="flex items-center justify-between mb-4">
-      <h2 className="text-lg font-semibold">Route Steps</h2>
-
-      {editMode && (
-      <Button onClick={handleAddStep} size="sm">
-        <Plus className="mr-2 h-4 w-4" />
-        Add Step
-      </Button>
-      )}
-  </div>
-
-  {editMode ? (
-    <div className="space-y-4">
-
-      {editedSteps.map((step, index) => (
-        <div
-          key={step.id}
-          className="relative rounded-lg border border-border bg-accent/5 p-4"
-        >
-
-          <div className="absolute right-2 top-2 flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleMoveStep(index, 'up')}
-              disabled={index === 0}
-            >
-              <ChevronUp className="h-4 w-4" />
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Route Steps</h2>
+          {editMode && (
+            <Button onClick={handleAddStep} size="sm">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Step
             </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleMoveStep(index, 'down')}
-              disabled={index === editedSteps.length - 1}
-            >
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleRemoveStep(index)}
-              className="text-destructive"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-4 pr-24">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {index + 1}
-            </div>
-
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Level</p>
-                <Input
-                  value={step.level || ""}
-                  onChange={(e) =>
-                    handleStepChange(index, "level", e.target.value)
-                  }
-                  className="h-9"
-                />
-              </div>
-
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">City</p>
-                <Input
-                  value={step.city || ""}
-                  onChange={(e) =>
-                    handleStepChange(index, "city", e.target.value)
-                  }
-                  className="h-9"
-                />
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-      ))}
 
-      <div className="flex justify-end gap-3 pt-4">
-        <Button variant="outline" onClick={handleCancelEdit}>
-          Cancel
-        </Button>
+        {editMode ? (
+          <div className="space-y-4">
+            {editedSteps.map((step, index) => (
+              <div
+                key={step.id}
+                className="relative rounded-lg border border-border bg-accent/5 p-4"
+              >
+                <div className="absolute right-2 top-2 flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleMoveStep(index, 'up')}
+                    disabled={index === 0}
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleMoveStep(index, 'down')}
+                    disabled={index === editedSteps.length - 1}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveStep(index)}
+                    className="text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
 
-        <Button onClick={handleSaveSteps} disabled={saving}>
-          {saving ? "Saving..." : <>
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
-          </>}
-        </Button>
-      </div>
-
-    </div>
-  ) : (
-    <div className="space-y-2">
-
-      {routeSteps.length > 0 ? (
-        routeSteps.map((step) => (
-          <div
-            key={step.id}
-            className="flex items-center gap-4 rounded-lg border border-border bg-accent/5 p-3"
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {step.order_number}
-            </div>
-
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-             
-              <div>
-                <p className="text-xs text-muted-foreground">Level</p>
-                <p className="text-sm font-medium">{step.level}</p>
+                <div className="flex items-center gap-4 pr-24">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Level</p>
+                      <Input
+                        value={step.level || ""}
+                        onChange={(e) =>
+                          handleStepChange(index, "level", e.target.value)
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">City</p>
+                      <Input
+                        value={step.city || ""}
+                        onChange={(e) =>
+                          handleStepChange(index, "city", e.target.value)
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
+            ))}
 
-              <div>
-                <p className="text-xs text-muted-foreground">City</p>
-                <p className="text-sm">{step.city}</p>
-              </div>
-              <div className="mt-3">
-  <p className="text-xs text-muted-foreground mb-1">
-    Assign Employee
-  </p>
-
-    <select
-    className="
-      w-full 
-      rounded-lg 
-      border border-border
-      bg-card
-      px-3 py-2
-      text-sm text-foreground
-      focus:outline-none 
-      focus:ring-2 
-      focus:ring-primary/40
-      transition-all
-    "
-    value={step.assigned_employee_id || ""}
-    onChange={async (e) => {
-      await assignEmployeeToStep(step.id, e.target.value);
-    }}
-  >
-    <option value="">Select Employee</option>
-
-    {getAvailableEmployees(step.id).map(emp => (
-      <option key={emp.id} value={emp.id}>
-        {emp.name} - {emp.level}
-      </option>
-    ))}
-  </select>
-</div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveSteps} disabled={saving}>
+                {saving ? "Saving..." : <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>}
+              </Button>
             </div>
           </div>
-        ))
-      ) : (
-        <p className="text-center text-sm text-muted-foreground py-8">
-          No route steps found
-        </p>
-      )}
-    
+        ) : (
+          <div className="space-y-2">
+            {routeSteps.length > 0 ? (
+              routeSteps.map((step) => (
+                <div
+                  key={step.id}
+                  className="flex items-center gap-4 rounded-lg border border-border bg-accent/5 p-3"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {step.order_number}
+                  </div>
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Level</p>
+                      <p className="text-sm font-medium">{step.level}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">City</p>
+                      <p className="text-sm">{step.city}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Assign Employee</p>
+                      <select
+                        className="
+                          w-full 
+                          rounded-lg 
+                          border border-border
+                          bg-card
+                          px-3 py-2
+                          text-sm text-foreground
+                          focus:outline-none 
+                          focus:ring-2 
+                          focus:ring-primary/40
+                          transition-all
+                        "
+                        value={step.assigned_employee_id || ""}
+                        onChange={async (e) => {
+                          await assignEmployeeToStep(step.id, e.target.value);
+                        }}
+                      >
+                        <option value="">Select Employee</option>
+                        {getAvailableEmployees(step.id).map(emp => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name} - {emp.role}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-8">
+                No route steps found
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
-  )}
-</div>
-</div>);}
+  );
+}

@@ -16,6 +16,9 @@ import Employees from "@/pages/Employees"
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import RouteSteps from './pages/RouteSteps';
+import ScanPage from "@/pages/ScanPage";
+import CreateProductItem from "@/pages/qr/CreateProductItem";
+import GenerateAllQRCodes from "@/pages/admin/GenerateAllQRCodes";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +80,9 @@ const App = () => {
               <Route path="/entities/:id" element={<EntityDetail />} />
               <Route path="/employees" element={<Employees />} />
               <Route path="/route-steps" element={<RouteSteps />} />
+              <Route path="/scan" element={<ScanPage />} />
+              <Route path="/create-product-item" element={<CreateProductItem />} />
+              <Route path="/admin/generate-qr" element={<GenerateAllQRCodes />} />
             </Route>
             
             {/* 404 route */}

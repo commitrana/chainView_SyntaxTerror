@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Package } from 'lucide-react';
+import { Search, Filter, Package, QrCode } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -187,9 +187,13 @@ export default function Entities() {
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Total Scans</p>
-          <p className="text-2xl font-semibold">
-            {filtered.reduce((acc, e) => acc + (e.scan_count || 0), 0)}
+          <p className="text-sm text-muted-foreground">Items with QR Codes</p>
+          <p className="text-2xl font-semibold text-blue-600">
+            {filtered.filter(e => e.external_qr_path || e.internal_qr_path).length}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            External: {filtered.filter(e => e.external_qr_path).length} | 
+            Internal: {filtered.filter(e => e.internal_qr_path).length}
           </p>
         </div>
       </div>
@@ -206,6 +210,7 @@ export default function Entities() {
               <TableHead>Location</TableHead>
               <TableHead>Manufactured/Expiry</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>QR Codes</TableHead>
               <TableHead>Scans</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Action</TableHead>
@@ -214,7 +219,7 @@ export default function Entities() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                   Loading...
                 </TableCell>
               </TableRow>
@@ -270,6 +275,32 @@ export default function Entities() {
                   <TableCell>
                     <StatusBadge status={item.status || 'unknown'} />
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {item.external_qr_path ? (
+                        <div className="flex items-center gap-1" title="Has external QR code">
+                          <QrCode className="h-4 w-4 text-green-500" />
+                          <span className="text-xs text-green-600">EXT</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1" title="No external QR code">
+                          <QrCode className="h-4 w-4 text-gray-300" />
+                          <span className="text-xs text-gray-400">EXT</span>
+                        </div>
+                      )}
+                      {item.internal_qr_path ? (
+                        <div className="flex items-center gap-1" title="Has internal QR code">
+                          <QrCode className="h-4 w-4 text-blue-500" />
+                          <span className="text-xs text-blue-600">INT</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1" title="No internal QR code">
+                          <QrCode className="h-4 w-4 text-gray-300" />
+                          <span className="text-xs text-gray-400">INT</span>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-center">
                     {item.scan_count || 0}
                   </TableCell>
@@ -293,7 +324,7 @@ export default function Entities() {
             )}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                   No product items found.
                 </TableCell>
               </TableRow>

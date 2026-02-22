@@ -15,6 +15,7 @@ import EntityDetail from "@/pages/EntityDetail";
 import Employees from "@/pages/Employees"
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
+import RouteSteps from './pages/RouteSteps';
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => {
               <Route path="/entities" element={<Entities />} />
               <Route path="/entities/:id" element={<EntityDetail />} />
               <Route path="/employees" element={<Employees />} />
+              <Route path="/route-steps" element={<RouteSteps />} />
             </Route>
             
             {/* 404 route */}

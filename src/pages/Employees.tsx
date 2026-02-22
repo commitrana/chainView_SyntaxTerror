@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 type Employee = {
   id: string;
   name: string;
- 
+  
   phone: string;
   email: string;
   location: string;
@@ -45,7 +45,6 @@ export default function Employees() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Location</TableHead>
@@ -65,7 +64,6 @@ export default function Employees() {
               employees.map(emp => (
                 <TableRow key={emp.id}>
                   <TableCell className="font-medium">{emp.name}</TableCell>
-                  
                   <TableCell>{emp.phone || "-"}</TableCell>
                   <TableCell>{emp.email || "-"}</TableCell>
                   <TableCell>{emp.location || "-"}</TableCell>

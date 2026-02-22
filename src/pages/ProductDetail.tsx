@@ -15,18 +15,53 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [editedSteps, setEditedSteps] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [assigningStepIndex, setAssigningStepIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [currentRouteId, setCurrentRouteId] = useState<string | null>(null);
 
+  function getAvailableEmployees(currentStepId: string) {
+  const assignedEmployees = routeSteps
+    .filter(step => 
+      step.assigned_employee_id && step.id !== currentStepId
+    )
+    .map(step => step.assigned_employee_id);
+
+  return employees.filter(
+    emp => !assignedEmployees.includes(emp.id)
+  );
+}
+  async function fetchEmployees() {
+  const { data } = await supabase
+    .from("employees")
+    .select("id,name,role,location,phone,email");
+
+  setEmployees(data || []);
+}
   useEffect(() => {
     if (id) {
       fetchProductDirectly();
+      fetchEmployees();
     } else {
       setError("No product ID provided");
       setLoading(false);
     }
   }, [id]);
+
+   async function assignEmployeeToStep(stepId: string, employeeId: string) {
+  const { error } = await supabase
+    .from("route_steps")
+    .update({
+      assigned_employee_id: employeeId
+    })
+    .eq("id", stepId);
+
+  if (!error) {
+    await fetchRouteStepsForRoute(currentRouteId!);
+    setAssigningStepIndex(null);
+  }
+}
 
   async function fetchProductDirectly() {
     try {
@@ -350,142 +385,171 @@ export default function ProductDetail() {
           <p className="text-sm text-muted-foreground py-2">No routes found for this product.</p>
         )}
       </div>
-
+    
       {/* Route Steps Card */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Route Steps</h2>
-          {editMode && (
-            <Button onClick={handleAddStep} size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Step
+      
+    <div className="rounded-xl border border-border bg-card p-6">
+      <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-semibold">Route Steps</h2>
+
+      {editMode && (
+      <Button onClick={handleAddStep} size="sm">
+        <Plus className="mr-2 h-4 w-4" />
+        Add Step
+      </Button>
+      )}
+  </div>
+
+  {editMode ? (
+    <div className="space-y-4">
+
+      {editedSteps.map((step, index) => (
+        <div
+          key={step.id}
+          className="relative rounded-lg border border-border bg-accent/5 p-4"
+        >
+
+          <div className="absolute right-2 top-2 flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleMoveStep(index, 'up')}
+              disabled={index === 0}
+            >
+              <ChevronUp className="h-4 w-4" />
             </Button>
-          )}
-        </div>
-        
-        {editMode ? (
-          <div className="space-y-4">
-            {editedSteps.map((step, index) => (
-              <div 
-                key={step.id} 
-                className="relative rounded-lg border border-border bg-accent/5 p-4"
-              >
-                {/* Edit Controls */}
-                <div className="absolute right-2 top-2 flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleMoveStep(index, 'up')}
-                    disabled={index === 0}
-                    className="h-8 w-8 p-0"
-                    title="Move up"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleMoveStep(index, 'down')}
-                    disabled={index === editedSteps.length - 1}
-                    className="h-8 w-8 p-0"
-                    title="Move down"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveStep(index)}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    title="Remove step"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
 
-                <div className="flex items-center gap-4 pr-24">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Level</p>
-                      <Input
-                        value={step.level || ''}
-                        onChange={(e) => handleStepChange(index, 'level', e.target.value)}
-                        placeholder="e.g., Manufacturing"
-                        className="h-9"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">City</p>
-                      <Input
-                        value={step.city || ''}
-                        onChange={(e) => handleStepChange(index, 'city', e.target.value)}
-                        placeholder="e.g., New York"
-                        className="h-9"
-                      />
-                    </div>
-                  </div>
-                </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleMoveStep(index, 'down')}
+              disabled={index === editedSteps.length - 1}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleRemoveStep(index)}
+              className="text-destructive"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-4 pr-24">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+              {index + 1}
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Level</p>
+                <Input
+                  value={step.level || ""}
+                  onChange={(e) =>
+                    handleStepChange(index, "level", e.target.value)
+                  }
+                  className="h-9"
+                />
               </div>
-            ))}
 
-            {/* Save/Cancel buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={handleCancelEdit}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveSteps} disabled={saving}>
-                {saving ? (
-                  <>Saving...</>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">City</p>
+                <Input
+                  value={step.city || ""}
+                  onChange={(e) =>
+                    handleStepChange(index, "city", e.target.value)
+                  }
+                  className="h-9"
+                />
+              </div>
             </div>
           </div>
-        ) : (
-          // View mode
-          routeSteps.length > 0 ? (
-            <div className="space-y-2">
-              {routeSteps.map((step, index) => (
-                <div 
-                  key={step.id} 
-                  className="flex items-center gap-4 rounded-lg border border-border bg-accent/5 p-3"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                    {step.order_number}
-                  </div>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Level</p>
-                      <p className="text-sm font-medium">{step.level}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">City</p>
-                      <p className="text-sm">{step.city}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-4">No route steps found for this product.</p>
-              {!editMode && (
-                <Button onClick={handleEditMode} variant="outline">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Route Steps
-                </Button>
-              )}
-            </div>
-          )
-        )}
+        </div>
+      ))}
+
+      <div className="flex justify-end gap-3 pt-4">
+        <Button variant="outline" onClick={handleCancelEdit}>
+          Cancel
+        </Button>
+
+        <Button onClick={handleSaveSteps} disabled={saving}>
+          {saving ? "Saving..." : <>
+            <Save className="mr-2 h-4 w-4" />
+            Save Changes
+          </>}
+        </Button>
       </div>
+
     </div>
-  );
-}
+  ) : (
+    <div className="space-y-2">
+
+      {routeSteps.length > 0 ? (
+        routeSteps.map((step) => (
+          <div
+            key={step.id}
+            className="flex items-center gap-4 rounded-lg border border-border bg-accent/5 p-3"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+              {step.order_number}
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+             
+              <div>
+                <p className="text-xs text-muted-foreground">Level</p>
+                <p className="text-sm font-medium">{step.level}</p>
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground">City</p>
+                <p className="text-sm">{step.city}</p>
+              </div>
+              <div className="mt-3">
+  <p className="text-xs text-muted-foreground mb-1">
+    Assign Employee
+  </p>
+
+    <select
+    className="
+      w-full 
+      rounded-lg 
+      border border-border
+      bg-card
+      px-3 py-2
+      text-sm text-foreground
+      focus:outline-none 
+      focus:ring-2 
+      focus:ring-primary/40
+      transition-all
+    "
+    value={step.assigned_employee_id || ""}
+    onChange={async (e) => {
+      await assignEmployeeToStep(step.id, e.target.value);
+    }}
+  >
+    <option value="">Select Employee</option>
+
+    {getAvailableEmployees(step.id).map(emp => (
+      <option key={emp.id} value={emp.id}>
+        {emp.name} - {emp.level}
+      </option>
+    ))}
+  </select>
+</div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <p className="text-center text-sm text-muted-foreground py-8">
+          No route steps found
+        </p>
+      )}
+    
+    </div>
+  )}
+</div>
+</div>);}

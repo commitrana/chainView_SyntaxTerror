@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Building2, Menu, X, QrCode, Bell, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Building2, Menu, X, QrCode, Bell, User, LogOut, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -9,6 +9,7 @@ const navItems = [
   { label: 'Products', path: '/products', icon: Package },
   { label: 'Entities', path: '/entities', icon: Building2 },
   { label: 'Employees', path: '/employees', icon: User },
+  { label: 'Route Steps', path: '/route-steps', icon: MapPin }, // Added this line
 ];
 
 export default function DashboardLayout() {
@@ -102,7 +103,7 @@ export default function DashboardLayout() {
           </div>
           <div className="flex-1 px-3 py-4">
             {/* Skeleton loading state for nav items */}
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => ( // Updated from 4 to 5 items
               <div key={i} className="flex items-center gap-3 px-3 py-2.5">
                 <div className="h-4 w-4 rounded bg-muted animate-pulse" />
                 <div className="h-4 w-20 rounded bg-muted animate-pulse" />

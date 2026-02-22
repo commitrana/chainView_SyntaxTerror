@@ -80,9 +80,6 @@ export default function Dashboard() {
 
   const stats = [
     { label: 'Total Products', value: products.length, icon: Package },
-    { label: 'Active Shipments', value: '0', icon: Truck },
-    { label: 'Completed', value: '0', icon: CheckCircle },
-    { label: 'Pending Actions', value: '0', icon: AlertTriangle },
   ];
 
   return (
